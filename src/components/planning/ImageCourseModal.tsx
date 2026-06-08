@@ -22,17 +22,25 @@ interface ImageCourseModalProps {
   onClose: () => void;
   date: string;
   userId: string;
+  userName: string;
   userRole: UserRole;
   onSuccess: (tasks: Task[]) => void;
 }
 
 type Step = "capture" | "analyzing" | "review" | "saving" | "done";
 
+function matchesUser(instructor: string, userName: string): boolean {
+  const a = instructor.trim().toLowerCase();
+  const b = userName.trim().toLowerCase();
+  return a.includes(b) || b.includes(a);
+}
+
 export default function ImageCourseModal({
   isOpen,
   onClose,
   date,
   userId,
+  userName,
   userRole,
   onSuccess,
 }: ImageCourseModalProps) {
@@ -99,7 +107,7 @@ export default function ImageCourseModal({
       const detected: DetectedSession[] = (data.sessions ?? []).map(
         (s: { instructor: string; startTime: string; endTime: string; studentCount: number; discipline: "kite" | "wing" }) => ({
           ...s,
-          selected: true,
+          selected: matchesUser(s.instructor, userName),
           editedStartTime: s.startTime,
           editedEndTime: s.endTime,
           editedStudentCount: s.studentCount,

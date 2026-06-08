@@ -491,6 +491,7 @@ export default function WeeklyPlanner({ user }: WeeklyPlannerProps) {
         onClose={() => setImageModalOpen(false)}
         date={imageModalDate}
         userId={user.id}
+        userName={user.name}
         userRole={user.role}
         onSuccess={(newTasks) => {
           setTasks((prev) => [...prev, ...newTasks]);
