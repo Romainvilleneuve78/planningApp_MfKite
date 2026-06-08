@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Avatar from "@/components/ui/Avatar";
 import CreateUserModal from "./CreateUserModal";
-import { User } from "@/types";
+import { User, ROLE_LABELS } from "@/types";
 
 interface SidebarProps {
   users: User[];
@@ -113,7 +113,10 @@ export default function Sidebar({
               onClick={() => handleSelectUser(user.id)}
             >
               <Avatar name={user.name} color={user.color} size="sm" />
-              <span className="text-sm font-medium truncate flex-1">{user.name}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{user.name}</p>
+                <p className="text-[11px] text-gray-400 truncate">{ROLE_LABELS[user.role]}</p>
+              </div>
 
               <div className="relative">
                 <button

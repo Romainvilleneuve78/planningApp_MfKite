@@ -1,0 +1,5 @@
+-- CreateEnum
+CREATE TYPE "UserRole" AS ENUM ('AIDE_MONO', 'MONITEUR_KITE_WING', 'MONITEUR_WING');
+
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN     "role" "UserRole" NOT NULL DEFAULT 'AIDE_MONO';
