@@ -52,18 +52,34 @@ export default function ImageCourseModal({
     onClose();
   }
 
+  function compressImage(dataUrl: string, maxWidth = 1400): Promise<{ base64: string; preview: string }> {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = img.width > maxWidth ? maxWidth / img.width : 1;
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const compressed = canvas.toDataURL("image/jpeg", 0.75);
+        resolve({ base64: compressed.split(",")[1], preview: compressed });
+      };
+      img.src = dataUrl;
+    });
+  }
+
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       const dataUrl = ev.target?.result as string;
-      const base64 = dataUrl.split(",")[1];
-      setImagePreview(dataUrl);
-      runAnalysis(base64, file.type || "image/jpeg");
+      const { base64, preview } = await compressImage(dataUrl);
+      setImagePreview(preview);
+      runAnalysis(base64, "image/jpeg");
     };
     reader.readAsDataURL(file);
-    // reset input so same file can be re-selected
     e.target.value = "";
   }
 

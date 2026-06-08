@@ -2,6 +2,8 @@ import Anthropic from "@anthropic-ai/sdk";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+export const maxDuration = 60;
+
 const PROMPT = `Tu analyses une photo d'un tableau blanc de planification de cours de kitesurf/wingfoil.
 
 RÈGLES STRICTES:
@@ -47,7 +49,7 @@ export async function POST(request: Request) {
 
   try {
     const message = await client.messages.create({
-      model: "claude-opus-4-7",
+      model: "claude-sonnet-4-6",
       max_tokens: 1024,
       messages: [
         {
@@ -89,7 +91,8 @@ export async function POST(request: Request) {
 
     return Response.json({ sessions, issues: result.issues ?? [] });
   } catch (err) {
-    console.error("analyze-image error:", err);
-    return Response.json({ error: "Analyse échouée" }, { status: 500 });
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("analyze-image error:", msg);
+    return Response.json({ error: `Analyse échouée : ${msg}` }, { status: 500 });
   }
 }
