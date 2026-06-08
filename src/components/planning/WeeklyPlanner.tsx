@@ -17,6 +17,7 @@ import { Task, User, isKiteTask, isWingTask } from "@/types";
 import TaskCard from "./TaskCard";
 import TaskModal from "./TaskModal";
 import HoursSummary from "./HoursSummary";
+import ImageCourseModal from "./ImageCourseModal";
 
 interface WeeklyPlannerProps {
   user: User;
@@ -49,6 +50,8 @@ export default function WeeklyPlanner({ user }: WeeklyPlannerProps) {
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [imageModalOpen, setImageModalOpen] = useState(false);
+  const [imageModalDate, setImageModalDate] = useState<string>("");
 
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(currentWeek, { weekStartsOn: 1 });
@@ -212,6 +215,17 @@ export default function WeeklyPlanner({ user }: WeeklyPlannerProps) {
             Aujourd&apos;hui
           </button>
           <button
+            onClick={() => { setImageModalDate(format(activeDay, "yyyy-MM-dd")); setImageModalOpen(true); }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors border border-indigo-100"
+            title="Importer depuis photo"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            Photo
+          </button>
+          <button
             onClick={handleExport}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 transition-colors border border-gray-200"
           >
@@ -337,6 +351,16 @@ export default function WeeklyPlanner({ user }: WeeklyPlannerProps) {
             Aujourd&apos;hui
           </button>
           <button
+            onClick={() => { setImageModalDate(format(activeDay, "yyyy-MM-dd")); setImageModalOpen(true); }}
+            className="flex items-center justify-center gap-1.5 flex-1 py-2 rounded-xl text-xs font-semibold text-indigo-600 bg-indigo-50 active:bg-indigo-100 transition-colors border border-indigo-100"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            Photo
+          </button>
+          <button
             onClick={handleExport}
             className="flex items-center justify-center gap-1.5 flex-1 py-2 rounded-xl text-xs font-semibold text-gray-600 bg-gray-50 active:bg-gray-100 transition-colors border border-gray-200"
           >
@@ -378,6 +402,16 @@ export default function WeeklyPlanner({ user }: WeeklyPlannerProps) {
                   {dayHours > 0 && (
                     <p className="text-xs text-gray-400 mt-1">{dayHours.toFixed(1).replace(".0", "")}h</p>
                   )}
+                  <button
+                    onClick={() => { setImageModalDate(format(day, "yyyy-MM-dd")); setImageModalOpen(true); }}
+                    className="mt-1 w-6 h-6 mx-auto flex items-center justify-center rounded-lg hover:bg-indigo-100 text-gray-300 hover:text-indigo-500 transition-colors"
+                    title="Importer depuis photo"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </button>
                 </div>
                 <div className="flex-1 p-2 space-y-1.5">
                   {dayTasks.map((task) => (
@@ -449,6 +483,18 @@ export default function WeeklyPlanner({ user }: WeeklyPlannerProps) {
         task={selectedTask}
         onSuccess={handleTaskSaved}
         onDelete={handleTaskDeleted}
+      />
+
+      {/* Image course modal */}
+      <ImageCourseModal
+        isOpen={imageModalOpen}
+        onClose={() => setImageModalOpen(false)}
+        date={imageModalDate}
+        userId={user.id}
+        userRole={user.role}
+        onSuccess={(newTasks) => {
+          setTasks((prev) => [...prev, ...newTasks]);
+        }}
       />
     </div>
   );
