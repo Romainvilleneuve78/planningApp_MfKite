@@ -33,6 +33,24 @@ export interface User {
   updatedAt: string;
 }
 
+// Titres de cours reconnus (référence unique pour toute l'app)
+export const COURSE_KITESURF = "Cours de Kitesurf";
+export const COURSE_WINGFOIL = "Cours de Wingfoil";
+export const COURSE_TITLES = [COURSE_KITESURF, COURSE_WINGFOIL] as const;
+
+export function isCourseTask(title: string): boolean {
+  const t = title.trim().toLowerCase();
+  return t === "cours de kitesurf" || t === "cours de wingfoil";
+}
+
+export function isKiteTask(title: string): boolean {
+  return title.trim().toLowerCase() === "cours de kitesurf";
+}
+
+export function isWingTask(title: string): boolean {
+  return title.trim().toLowerCase() === "cours de wingfoil";
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -40,6 +58,7 @@ export interface Task {
   startTime: string;
   endTime: string;
   date: string;
+  studentCount?: number | null;
   userId: string;
   createdAt: string;
   updatedAt: string;

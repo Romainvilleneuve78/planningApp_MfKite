@@ -2,25 +2,43 @@
 
 import { useState, useEffect } from "react";
 import Modal from "@/components/ui/Modal";
-import { Task } from "@/types";
+import { Task, UserRole, isCourseTask, COURSE_KITESURF, COURSE_WINGFOIL } from "@/types";
 
 interface TaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   date: string;
   userId: string;
+  userRole: UserRole;
   task?: Task | null;
   onSuccess: (task: Task) => void;
   onDelete?: (taskId: string) => void;
 }
 
-const QUICK_TASKS = [
-  { title: "Cours kitesurf", duration: 3 },
-  { title: "Préparation matériel", duration: 1 },
-  { title: "Nettoyage plage", duration: 1.5 },
-  { title: "Réunion", duration: 1 },
-  { title: "Administratif", duration: 2 },
-];
+type QuickTask = { title: string; duration: number; studentCount?: number };
+
+const QUICK_TASKS_BY_ROLE: Record<UserRole, QuickTask[]> = {
+  AIDE_MONO: [
+    { title: "Cours kitesurf", duration: 3 },
+    { title: "Préparation matériel", duration: 1 },
+    { title: "Nettoyage plage", duration: 1.5 },
+    { title: "Réunion", duration: 1 },
+    { title: "Administratif", duration: 2 },
+  ],
+  MONITEUR_KITE_WING: [
+    { title: COURSE_KITESURF, duration: 1.5, studentCount: 0 },
+    { title: COURSE_WINGFOIL, duration: 1.5, studentCount: 0 },
+    { title: "Préparation matériel", duration: 1 },
+    { title: "Réunion", duration: 1 },
+    { title: "Administratif", duration: 2 },
+  ],
+  MONITEUR_WING: [
+    { title: COURSE_WINGFOIL, duration: 1.5, studentCount: 0 },
+    { title: "Préparation matériel", duration: 1 },
+    { title: "Réunion", duration: 1 },
+    { title: "Administratif", duration: 2 },
+  ],
+};
 
 function addHours(time: string, hours: number): string {
   const [h, m] = time.split(":").map(Number);
@@ -41,13 +59,29 @@ function minutesToTime(minutes: number): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
-export default function TaskModal({ isOpen, onClose, date, userId, task, onSuccess, onDelete }: TaskModalProps) {
+const isMonitorRole = (role: UserRole) =>
+  role === "MONITEUR_KITE_WING" || role === "MONITEUR_WING";
+
+export default function TaskModal({
+  isOpen,
+  onClose,
+  date,
+  userId,
+  userRole,
+  task,
+  onSuccess,
+  onDelete,
+}: TaskModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("12:00");
+  const [studentCount, setStudentCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const showStudentCount =
+    isMonitorRole(userRole) && isCourseTask(title);
 
   useEffect(() => {
     if (task) {
@@ -55,18 +89,28 @@ export default function TaskModal({ isOpen, onClose, date, userId, task, onSucce
       setDescription(task.description ?? "");
       setStartTime(task.startTime);
       setEndTime(task.endTime);
+      setStudentCount(task.studentCount ?? null);
     } else {
       setTitle("");
       setDescription("");
       setStartTime("09:00");
       setEndTime("12:00");
+      setStudentCount(null);
     }
     setError("");
   }, [task, isOpen]);
 
-  function applyQuickTask(qt: { title: string; duration: number }) {
+  // Reset studentCount when title changes away from a course type
+  useEffect(() => {
+    if (!isCourseTask(title)) setStudentCount(null);
+    else if (studentCount === null) setStudentCount(0);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title]);
+
+  function applyQuickTask(qt: QuickTask) {
     setTitle(qt.title);
     setEndTime(addHours(startTime, qt.duration));
+    if (qt.studentCount !== undefined) setStudentCount(qt.studentCount);
   }
 
   function getDuration(): string {
@@ -94,10 +138,26 @@ export default function TaskModal({ isOpen, onClose, date, userId, task, onSucce
     setError("");
 
     try {
-      const body = { title, description, startTime, endTime, date, userId };
+      const body = {
+        title,
+        description,
+        startTime,
+        endTime,
+        date,
+        userId,
+        studentCount: showStudentCount ? (studentCount ?? 0) : null,
+      };
       const res = task
-        ? await fetch(`/api/tasks/${task.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
-        : await fetch("/api/tasks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+        ? await fetch(`/api/tasks/${task.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          })
+        : await fetch("/api/tasks", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
 
       if (!res.ok) throw new Error("Erreur");
       const saved = await res.json();
@@ -118,14 +178,22 @@ export default function TaskModal({ isOpen, onClose, date, userId, task, onSucce
     onClose();
   }
 
+  const quickTasks = QUICK_TASKS_BY_ROLE[userRole];
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={task ? "Modifier la tâche" : "Nouvelle tâche"} width="max-w-lg">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={task ? "Modifier la tâche" : "Nouvelle tâche"}
+      width="max-w-lg"
+    >
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Tâches rapides */}
         {!task && (
           <div>
             <p className="text-xs font-medium text-gray-500 mb-2">Tâches rapides</p>
             <div className="flex flex-wrap gap-1.5">
-              {QUICK_TASKS.map((qt) => (
+              {quickTasks.map((qt) => (
                 <button
                   key={qt.title}
                   type="button"
@@ -139,18 +207,53 @@ export default function TaskModal({ isOpen, onClose, date, userId, task, onSucce
           </div>
         )}
 
+        {/* Titre */}
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-1.5">Titre</label>
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Ex: Cours kitesurf"
+            placeholder="Ex: Cours de Kitesurf"
             className="w-full px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-300 transition-all text-sm"
             autoFocus
           />
         </div>
 
+        {/* Nombre de stagiaires — uniquement pour moniteurs + titres de cours */}
+        {showStudentCount && (
+          <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 px-4 py-3">
+            <label className="block text-xs font-semibold text-indigo-700 mb-2">
+              Nombre de stagiaires
+            </label>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setStudentCount(Math.max(0, (studentCount ?? 0) - 1))}
+                className="w-9 h-9 flex items-center justify-center rounded-xl bg-white border border-indigo-200 text-indigo-600 font-bold text-lg hover:bg-indigo-100 active:scale-95 transition-all"
+              >
+                −
+              </button>
+              <input
+                type="number"
+                min={0}
+                max={50}
+                value={studentCount ?? 0}
+                onChange={(e) => setStudentCount(Math.max(0, Math.min(50, Number(e.target.value))))}
+                className="flex-1 text-center px-3 py-2 rounded-xl bg-white border border-indigo-200 text-gray-900 font-semibold text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+              />
+              <button
+                type="button"
+                onClick={() => setStudentCount(Math.min(50, (studentCount ?? 0) + 1))}
+                className="w-9 h-9 flex items-center justify-center rounded-xl bg-white border border-indigo-200 text-indigo-600 font-bold text-lg hover:bg-indigo-100 active:scale-95 transition-all"
+              >
+                +
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Horaires */}
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1.5">Début</label>
@@ -172,6 +275,7 @@ export default function TaskModal({ isOpen, onClose, date, userId, task, onSucce
           </div>
         </div>
 
+        {/* Durée */}
         <div className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-2.5">
           <div className="flex items-center gap-2">
             <span className="text-xs text-gray-500">Durée :</span>
@@ -184,6 +288,7 @@ export default function TaskModal({ isOpen, onClose, date, userId, task, onSucce
           </div>
         </div>
 
+        {/* Notes */}
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-1.5">Notes (optionnel)</label>
           <textarea

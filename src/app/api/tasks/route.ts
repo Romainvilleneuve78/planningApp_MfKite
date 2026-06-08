@@ -13,10 +13,7 @@ export async function GET(request: Request) {
   const tasks = await prisma.task.findMany({
     where: {
       userId,
-      date: {
-        gte: new Date(weekStart),
-        lte: new Date(weekEnd),
-      },
+      date: { gte: new Date(weekStart), lte: new Date(weekEnd) },
     },
     orderBy: { startTime: "asc" },
   });
@@ -25,7 +22,8 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const { title, description, startTime, endTime, date, userId } = await request.json();
+  const { title, description, startTime, endTime, date, userId, studentCount } =
+    await request.json();
 
   if (!title?.trim() || !startTime || !endTime || !date || !userId) {
     return Response.json({ error: "Champs requis manquants" }, { status: 400 });
@@ -39,6 +37,7 @@ export async function POST(request: Request) {
       endTime,
       date: new Date(date),
       userId,
+      studentCount: typeof studentCount === "number" ? studentCount : null,
     },
   });
 

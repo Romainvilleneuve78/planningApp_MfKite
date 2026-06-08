@@ -13,7 +13,7 @@ import {
   getISOWeek,
 } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Task, User } from "@/types";
+import { Task, User, isKiteTask, isWingTask } from "@/types";
 import TaskCard from "./TaskCard";
 import TaskModal from "./TaskModal";
 import HoursSummary from "./HoursSummary";
@@ -143,6 +143,16 @@ export default function WeeklyPlanner({ user }: WeeklyPlannerProps) {
     (acc, t) => acc + calcDurationHours(t.startTime, t.endTime),
     0
   );
+
+  // Stats moniteur
+  const kiteCoursesCount = tasks.filter((t) => isKiteTask(t.title)).length;
+  const wingCoursesCount = tasks.filter((t) => isWingTask(t.title)).length;
+  const kiteStudents = tasks
+    .filter((t) => isKiteTask(t.title))
+    .reduce((acc, t) => acc + (t.studentCount ?? 0), 0);
+  const wingStudents = tasks
+    .filter((t) => isWingTask(t.title))
+    .reduce((acc, t) => acc + (t.studentCount ?? 0), 0);
 
   function handleExport() {
     const params = new URLSearchParams({
@@ -420,7 +430,14 @@ export default function WeeklyPlanner({ user }: WeeklyPlannerProps) {
       </div>
 
       {/* Hours summary */}
-      <HoursSummary totalHours={totalHours} />
+      <HoursSummary
+        userRole={user.role}
+        totalHours={totalHours}
+        kiteCoursesCount={kiteCoursesCount}
+        wingCoursesCount={wingCoursesCount}
+        kiteStudents={kiteStudents}
+        wingStudents={wingStudents}
+      />
 
       {/* Task modal */}
       <TaskModal
@@ -428,6 +445,7 @@ export default function WeeklyPlanner({ user }: WeeklyPlannerProps) {
         onClose={() => { setModalOpen(false); setSelectedTask(null); }}
         date={selectedDate}
         userId={user.id}
+        userRole={user.role}
         task={selectedTask}
         onSuccess={handleTaskSaved}
         onDelete={handleTaskDeleted}
